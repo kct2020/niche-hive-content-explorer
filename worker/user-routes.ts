@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
 import { ok, bad, notFound } from './core-utils';
-import type { HypothesisSearchResponse, NHCRecord, NHCMetadata, HypothesisAnnotation } from "@shared/types";
+import type { HypothesisSearchResponse, NHCRecord, NHCMetadata, HypothesisAnnotation, HivePostRpc } from "@shared/types";
 let globalLastHiveFetch = 0;
-const HIVE_THROTTLE_MS = 2000;
+const HIVE_THROTTLE_MS = 1000;
 function parseNHCTags(annotation: HypothesisAnnotation): NHCMetadata | null {
   const tags = annotation.tags || [];
   const meta: Partial<NHCMetadata> = {};
@@ -77,6 +77,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     try {
       const response = await fetch('https://api.hive.blog', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jsonrpc: "2.0",
           method: "condenser_api.get_content",
@@ -84,11 +85,19 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
           id: 1
         })
       });
-      const result = await response.json() as any;
-      if (result.error || !result.result || result.result.author === "") {
-        return notFound(c, 'Hive post not found');
+      const result = await response.json() as HivePostRpc;
+      if (result.result && result.result.author !== "") {
+        const post = result.result;
+        try {
+          if (post.json_metadata) {
+            post.metadata = JSON.parse(post.json_metadata);
+          }
+        } catch (e) {
+          console.error('Failed to parse Hive metadata');
+        }
+        return ok(c, post);
       }
-      return ok(c, result.result);
+      return notFound(c, 'Hive post not found');
     } catch (error) {
       return bad(c, 'Failed to fetch Hive post');
     }

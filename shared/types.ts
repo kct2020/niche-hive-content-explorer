@@ -55,6 +55,13 @@ export interface HypothesisSearchResponse {
   total: number;
   rows: HypothesisAnnotation[];
 }
+export interface HivePostMetadata {
+  image?: string[];
+  tags?: string[];
+  app?: string;
+  format?: string;
+  description?: string;
+}
 export interface HivePost {
   author: string;
   permlink: string;
@@ -62,5 +69,28 @@ export interface HivePost {
   body: string;
   created: string;
   updated: string;
-  json_metadata?: string;
+  json_metadata: string;
+  metadata?: HivePostMetadata;
+}
+export interface HivePostResponse {
+  result: HivePost;
+}
+export interface HivePostProxyResponse {
+  success: boolean;
+  data: HivePost;
+}
+export interface HivePostRpc {
+  jsonrpc: string;
+  result: HivePost;
+  id: number;
+}
+export interface HivePostRequest {
+  jsonrpc: string;
+  method: string;
+  params: [string, string];
+  id: number;
+}
+export interface HivePostSearch {
+  total: number;
+  rows: HypothesisAnnotation[];
 }
