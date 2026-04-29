@@ -3,6 +3,10 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
 }
+export interface User {
+  id: string;
+  name: string;
+}
 export interface NHCMetadata {
   niche: string;
   title?: string;
@@ -20,10 +24,6 @@ export interface NHCRecord {
   tags: string[];
   metadata: NHCMetadata;
   original: HypothesisAnnotation;
-}
-export interface User {
-  id: string;
-  name: string;
 }
 export interface HypothesisSelector {
   type: string;
@@ -62,4 +62,5 @@ export interface HivePost {
   body: string;
   created: string;
   updated: string;
+  json_metadata?: string;
 }

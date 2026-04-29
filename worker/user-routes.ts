@@ -7,16 +7,13 @@ const HIVE_THROTTLE_MS = 2000;
 function parseNHCTags(annotation: HypothesisAnnotation): NHCMetadata | null {
   const tags = annotation.tags || [];
   const meta: Partial<NHCMetadata> = {};
-  // Extract niche (Mandatory)
   const nicheTag = tags.find(t => t.startsWith('NHC-Niche:'));
   if (!nicheTag) return null;
   meta.niche = nicheTag.replace('NHC-Niche:', '').trim();
-  // Extract optional fields
   meta.title = tags.find(t => t.startsWith('NHC-Title:'))?.replace('NHC-Title:', '').trim();
   meta.description = tags.find(t => t.startsWith('NHC-Description:'))?.replace('NHC-Description:', '').trim();
   meta.intro = tags.find(t => t.startsWith('NHC-Intro:'))?.replace('NHC-Intro:', '').trim();
   meta.revision = tags.find(t => t.startsWith('NHC-Revision:'))?.replace('NHC-Revision:', '').trim();
-  // Parse Hive coordinates from URI (e.g. https://peakd.com/@author/permlink)
   try {
     const url = new URL(annotation.uri);
     const parts = url.pathname.split('/').filter(Boolean);
@@ -32,11 +29,11 @@ function parseNHCTags(annotation: HypothesisAnnotation): NHCMetadata | null {
   return meta as NHCMetadata;
 }
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  // PAGINATED NHC RECORDS
   app.get('/api/nhc-records', async (c) => {
     try {
       const cursor = c.req.query('cursor');
       const limit = c.req.query('limit') || '200';
+      const filterNiche = c.req.query('niche');
       let url = `https://hypothes.is/api/search?limit=${limit}&tag=NHC&user=acct:KeithTaylor@hypothes.is`;
       if (cursor) url += `&search_after=${encodeURIComponent(cursor)}`;
       const response = await fetch(url, {
@@ -48,6 +45,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         .map(row => {
           const metadata = parseNHCTags(row);
           if (!metadata) return null;
+          if (filterNiche && metadata.niche.toLowerCase() !== filterNiche.toLowerCase()) return null;
           return {
             id: row.id,
             uri: row.uri,
@@ -68,10 +66,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return bad(c, 'Failed to fetch NHC records');
     }
   });
-  // THROTTLED HIVE POST PROXY
   app.get('/api/hive-post', async (c) => {
-    const author = c.req.query('author');
-    const permlink = c.req.query('permlink');
+    const author = c.req.query('author')?.toLowerCase().replace('@', '');
+    const permlink = c.req.query('permlink')?.toLowerCase();
     if (!author || !permlink) return bad(c, 'author and permlink required');
     const now = Date.now();
     const wait = Math.max(0, (globalLastHiveFetch + HIVE_THROTTLE_MS) - now);

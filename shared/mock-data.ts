@@ -1,15 +1,8 @@
-import type { User, Chat, ChatMessage } from './types';
-
+import type { User } from './types';
+/**
+ * Minimal mock data to satisfy template initialization.
+ */
 export const MOCK_USERS: User[] = [
-  { id: 'u1', name: 'User A' },
-  { id: 'u2', name: 'User B' }
+  { id: 'u1', name: 'Keith Taylor' },
+  { id: 'u2', name: 'Niche Explorer' }
 ];
-
-export const MOCK_CHATS: Chat[] = [
-  { id: 'c1', title: 'General' },
-];
-
-export const MOCK_CHAT_MESSAGES: ChatMessage[] = [
-  { id: 'm1', chatId: 'c1', userId: 'u1', text: 'Hello', ts: Date.now() },
-];
-  
