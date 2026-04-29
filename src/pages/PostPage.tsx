@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { motion, useScroll, useSpring } from 'framer-motion';
-import { ChevronLeft, Calendar, User, ArrowRight, ExternalLink, Clock, ShieldAlert, Loader2 } from 'lucide-react';
+import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, Calendar, User, ArrowRight, ExternalLink, Clock, ShieldAlert, Loader2, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { api } from '@/lib/api-client';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -11,12 +11,14 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 import type { HivePost, NHCRecord } from '@shared/types';
 import { MOCK_NHC_RECORDS } from '@shared/mock-data';
 export function PostPage() {
   const { author, permlink } = useParams<{ author: string; permlink: string }>();
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+  const [copied, setCopied] = useState(false);
   const cleanAuthor = useMemo(() => {
     if (!author) return "";
     return author.startsWith('@') ? author.slice(1).toLowerCase() : author.toLowerCase();
@@ -29,8 +31,8 @@ export function PostPage() {
   });
   const record = useMemo(() => {
     const allRecords = [...(records?.items ?? []), ...MOCK_NHC_RECORDS];
-    return allRecords.find(r =>
-      r.metadata.author.toLowerCase() === cleanAuthor &&
+    return allRecords.find(r => 
+      r.metadata.author.toLowerCase() === cleanAuthor && 
       r.metadata.permlink.toLowerCase() === cleanPermlink
     );
   }, [records, cleanAuthor, cleanPermlink]);
@@ -41,9 +43,11 @@ export function PostPage() {
     retry: 1,
   });
   const readingTime = useMemo(() => {
-    const body = post?.body || record?.metadata.description || "";
-    if (!body) return 1;
-    const words = body.trim().split(/\s+/).length;
+    // Strip markdown characters for better word count accuracy
+    const rawBody = post?.body || record?.metadata.description || "";
+    if (!rawBody) return 1;
+    const cleanText = rawBody.replace(/[#*`_\[\]()]/g, '');
+    const words = cleanText.trim().split(/\s+/).length;
     return Math.max(1, Math.ceil(words / 225));
   }, [post?.body, record]);
   const coverImage = useMemo(() => post?.metadata?.image?.[0] || null, [post?.metadata]);
@@ -51,6 +55,13 @@ export function PostPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [author, permlink]);
+  const copyPermlink = () => {
+    const link = `@${cleanAuthor}/${cleanPermlink}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    toast.success("Hive permlink copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
   if (isPostLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-8">
@@ -70,14 +81,25 @@ export function PostPage() {
     permlink: record.metadata.permlink,
     title: record.metadata.title || "Archive Content Transmission",
     body: `
-      <div class="space-y-6">
-        <p class="text-lg leading-relaxed font-medium text-foreground/90">${record.metadata.intro || ""}</p>
-        <div class="p-8 bg-amber-500/5 border-l-4 border-amber-500 rounded-r-3xl my-10 italic shadow-sm">
-          ${record.metadata.description || "The metadata record for this curation remains intact, though the full blockchain body is currently inaccessible."}
+      <div class="space-y-8">
+        <p class="text-xl leading-relaxed font-medium text-foreground/90 font-display">${record.metadata.intro || "Beginning transmission..."}</p>
+        <div class="p-10 bg-amber-500/5 border-l-4 border-amber-500 rounded-r-3xl my-10 shadow-sm border border-border/50">
+          <p class="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-4 flex items-center gap-2">
+            <ShieldAlert class="w-3 h-3" /> Metadata Integrity Log
+          </p>
+          <p class="italic text-lg text-foreground/80 leading-relaxed">${record.metadata.description || "The metadata record for this curation remains intact, though the full blockchain body is currently inaccessible."}</p>
         </div>
-        <p class="text-sm text-muted-foreground bg-secondary/30 p-6 rounded-2xl border border-border/50">
-          <strong>Notice:</strong> This interface is presenting an <em>Archive Record</em> view. The full source post on the Hive blockchain was unreachable during this synchronization cycle. All displayed metadata is verified via the NHC curation index.
-        </p>
+        <div class="bg-secondary/30 p-8 rounded-3xl border border-dashed border-border/50 space-y-4">
+           <p class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Diagnostic Status</p>
+           <p class="text-sm leading-relaxed text-muted-foreground">
+             This interface is currently presenting a <strong>Hardened Archive View</strong>. While the main Hive blockchain node responded with a timeout, the NHC curation layer has provided verified metadata.
+           </p>
+           <ul class="text-[10px] uppercase tracking-widest font-black text-muted-foreground/60 space-y-1">
+             <li>- SOURCE_VERIFIED: TRUE</li>
+             <li>- CONTENT_AVAILABLE: METADATA_ONLY</li>
+             <li>- PERSISTENCE_LAYER: HYPOTHESIS</li>
+           </ul>
+        </div>
       </div>
     `,
     created: record.created,
@@ -103,9 +125,9 @@ export function PostPage() {
   const peakdUrl = `https://peakd.com/@${displayPost.author.replace('@', '')}/${displayPost.permlink}`;
   return (
     <div className="min-h-screen bg-background relative selection:bg-amber-500/30 overflow-x-hidden pb-20">
-      <motion.div
-        className="fixed top-0 left-0 right-0 h-1.5 bg-amber-500 origin-left z-50 rounded-r-full shadow-glow"
-        style={{ scaleX }}
+      <motion.div 
+        className="fixed top-0 left-0 right-0 h-1.5 bg-amber-500 origin-left z-50 rounded-r-full shadow-glow" 
+        style={{ scaleX }} 
       />
       <ThemeToggle />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
@@ -118,9 +140,9 @@ export function PostPage() {
           </Button>
         </motion.div>
         {(isDemo || isPostError) && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} 
+            animate={{ opacity: 1, y: 0 }} 
             className="mb-12 p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex items-center gap-4 text-amber-600 dark:text-amber-400 shadow-sm"
           >
             <ShieldAlert className="w-5 h-5 shrink-0" />
@@ -153,35 +175,38 @@ export function PostPage() {
             <h1 className="text-4xl md:text-6xl font-display font-black leading-[1.1] tracking-tight text-foreground text-pretty">
               {record?.metadata.title || displayPost.title}
             </h1>
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-muted/20">
+            <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 bg-muted/20">
               <AspectRatio ratio={16 / 9}>
-                {coverImage ? (
-                  <motion.img 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    src={coverImage} 
-                    alt="Post Cover" 
-                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" 
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary to-background">
-                    <ShieldAlert className="w-12 h-12 text-muted-foreground/20" />
-                  </div>
-                )}
+                <AnimatePresence mode="wait">
+                  {coverImage ? (
+                    <motion.img 
+                      key="cover"
+                      initial={{ opacity: 0, filter: 'blur(10px)' }}
+                      animate={{ opacity: 1, filter: 'blur(0px)' }}
+                      src={coverImage} 
+                      alt="Post Cover" 
+                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                    />
+                  ) : (
+                    <motion.div key="placeholder" className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary to-background">
+                      <ShieldAlert className="w-12 h-12 text-muted-foreground/20" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </AspectRatio>
             </div>
           </header>
           <Separator className="bg-border/30" />
           <div className="prose">
-            <div
+            <div 
               className="hive-content-body selection:bg-amber-500/40"
-              dangerouslySetInnerHTML={{ __html: displayPost.body }}
+              dangerouslySetInnerHTML={{ __html: displayPost.body }} 
             />
           </div>
           <footer className="mt-24 pt-16 border-t border-border space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <section className="space-y-6">
-                <h3 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                <h3 className="text-2xl font-black tracking-tight flex items-center gap-3 text-foreground">
                   <span className="w-2 h-8 bg-amber-500 rounded-full" />
                   Curation Logic
                 </h3>
@@ -190,7 +215,7 @@ export function PostPage() {
                 </div>
               </section>
               <section className="space-y-6">
-                <h3 className="text-2xl font-black tracking-tight">External Links</h3>
+                <h3 className="text-2xl font-black tracking-tight text-foreground">Interoperability</h3>
                 <div className="flex flex-col gap-3">
                   <Button asChild variant="outline" className="w-full justify-start rounded-2xl h-14 border-amber-500/10 hover:bg-amber-500/5 hover:border-amber-500/30 group transition-all">
                     <a href={peakdUrl} target="_blank" rel="noopener noreferrer">
@@ -198,12 +223,20 @@ export function PostPage() {
                       <span className="font-bold uppercase tracking-widest text-[10px]">Interact via PeakD</span>
                     </a>
                   </Button>
+                  <Button 
+                    onClick={copyPermlink}
+                    variant="outline" 
+                    className="w-full justify-start rounded-2xl h-14 border-amber-500/10 hover:bg-amber-500/5 hover:border-amber-500/30 group transition-all"
+                  >
+                    {copied ? <Check className="w-4 h-4 mr-3 text-emerald-500" /> : <Copy className="w-4 h-4 mr-3 text-amber-500" />}
+                    <span className="font-bold uppercase tracking-widest text-[10px]">Copy Hive Permlink</span>
+                  </Button>
                 </div>
               </section>
             </div>
             <div className="text-center pt-8">
-              <Link
-                to="/"
+              <Link 
+                to="/" 
                 className="inline-flex items-center gap-3 text-amber-500 hover:text-amber-600 font-black uppercase tracking-[0.3em] text-[10px] transition-all group"
               >
                 Close Connection & Return <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-3" />

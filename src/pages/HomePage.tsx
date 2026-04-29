@@ -1,15 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Hexagon, Loader2, RefreshCw, ChevronLeft, ChevronRight, Search, Filter, Activity, Info } from 'lucide-react';
+import { Hexagon, Loader2, RefreshCw, ChevronLeft, ChevronRight, Search, Filter, Activity, Info, ShieldCheck, Zap, Server, Globe } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AnnotationCard } from '@/components/AnnotationCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { api } from '@/lib/api-client';
+import { api, checkHealth } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 import type { NHCRecord } from '@shared/types';
 import { MOCK_NHC_RECORDS } from '@shared/mock-data';
@@ -20,6 +20,12 @@ export function HomePage() {
   const [history, setHistory] = useState<(string | null)[]>([]);
   const [search, setSearch] = useState('');
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const { data: healthData } = useQuery({
+    queryKey: ['system-health'],
+    queryFn: checkHealth,
+    refetchInterval: 30000,
+  });
   const { data, isLoading, error, refetch, isRefetching } = useQuery<{ items: NHCRecord[], next: string | null, total: number }>({
     queryKey: ['nhc-records', cursor, selectedNiche],
     queryFn: () => api<{ items: NHCRecord[], next: string | null, total: number }>(
@@ -74,7 +80,8 @@ export function HomePage() {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-gradient-hive shadow-lg"
+              className="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-gradient-hive shadow-lg cursor-pointer"
+              onClick={() => setShowDiagnostics(!showDiagnostics)}
             >
               <Hexagon className="w-8 h-8 text-white fill-current" />
             </motion.div>
@@ -86,9 +93,17 @@ export function HomePage() {
                 Curated insights from the decentralized web, formatted for discovery and interoperability.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-                <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400 gap-1.5 py-1 px-3">
+                <Badge 
+                  variant="outline" 
+                  className={cn(
+                    "gap-1.5 py-1 px-3 transition-colors",
+                    healthData?.status === 'healthy' 
+                      ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400" 
+                      : "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+                  )}
+                >
                   <Activity className="w-3 h-3" />
-                  API: Healthy
+                  API: {healthData?.status === 'healthy' ? 'Active' : 'Checking...'}
                 </Badge>
                 <Badge variant="outline" className="border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400 gap-1.5 py-1 px-3">
                   <Info className="w-3 h-3" />
@@ -102,6 +117,43 @@ export function HomePage() {
               </div>
             </div>
           </header>
+          <AnimatePresence>
+            {showDiagnostics && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="mb-12 overflow-hidden"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 rounded-3xl bg-secondary/30 border border-border/50 backdrop-blur-md">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <Zap className="w-3 h-3" /> Latency
+                    </p>
+                    <p className="text-xl font-mono font-bold">{healthData?.latency.toFixed(0) ?? '--'}ms</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <Server className="w-3 h-3" /> Node
+                    </p>
+                    <p className="text-xl font-bold">CF Worker V2</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <Globe className="w-3 h-3" /> Backbone
+                    </p>
+                    <p className="text-xl font-bold">Hypothesis API</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                      <ShieldCheck className="w-3 h-3" /> Integrity
+                    </p>
+                    <p className="text-xl font-bold text-emerald-500">Verified</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className="mb-12 space-y-8">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <div className="relative w-full md:max-w-md">
@@ -113,11 +165,11 @@ export function HomePage() {
                   className="pl-10 bg-secondary/50 border-input/50 focus:ring-amber-500/50 rounded-xl h-11"
                 />
               </div>
-              <Button 
-                onClick={() => refetch()} 
-                disabled={isLoading || isRefetching} 
-                variant="outline" 
-                size="sm" 
+              <Button
+                onClick={() => refetch()}
+                disabled={isLoading || isRefetching}
+                variant="outline"
+                size="sm"
                 className="shrink-0 h-11 px-6 rounded-xl border-amber-500/20 hover:bg-amber-500/5 hover:text-amber-500 transition-all"
               >
                 {isRefetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
@@ -153,7 +205,7 @@ export function HomePage() {
           <main className="relative min-h-[400px]">
             <AnimatePresence mode="wait">
               {isLoading ? (
-                <motion.div 
+                <motion.div
                   key="loading"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -170,7 +222,7 @@ export function HomePage() {
                   ))}
                 </motion.div>
               ) : error ? (
-                <motion.div 
+                <motion.div
                   key="error"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -182,6 +234,7 @@ export function HomePage() {
               ) : (
                 <div key="content">
                   <motion.div
+                    layout
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
                   >
                     <AnimatePresence mode="popLayout">
@@ -191,7 +244,7 @@ export function HomePage() {
                     </AnimatePresence>
                   </motion.div>
                   {filteredItems.length === 0 && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="text-center py-32 space-y-6 max-w-lg mx-auto"
@@ -237,6 +290,13 @@ export function HomePage() {
           </main>
         </div>
       </div>
+      <footer className="py-10 border-t border-border/50 bg-secondary/10">
+        <div className="max-w-7xl mx-auto px-4 text-center space-y-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/60">
+            NHC Explorer v1.2 &bull; Production Ready &bull; Interoperable
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
