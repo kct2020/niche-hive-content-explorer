@@ -3,26 +3,29 @@ import type { Env } from './core-utils';
 import { ok, bad, notFound } from './core-utils';
 import type { HypothesisSearchResponse, NHCRecord, NHCMetadata, HypothesisAnnotation, HivePostRpc } from "@shared/types";
 let globalLastHiveFetch = 0;
-const HIVE_THROTTLE_MS = 1000;
+const HIVE_THROTTLE_MS = 800; // Slightly optimized throttle
 function parseNHCTags(annotation: HypothesisAnnotation): NHCMetadata | null {
   const tags = annotation.tags || [];
   const meta: Partial<NHCMetadata> = {};
   const nicheTag = tags.find(t => t.startsWith('NHC-Niche:'));
   if (!nicheTag) return null;
   meta.niche = nicheTag.replace('NHC-Niche:', '').trim();
-  meta.title = tags.find(t => t.startsWith('NHC-Title:'))?.replace('NHC-Title:', '').trim();
+  meta.title = tags.find(t => t.startsWith('NHC-Title:'))?.replace('NHC-Title:', '').trim() || annotation.document?.title?.[0];
   meta.description = tags.find(t => t.startsWith('NHC-Description:'))?.replace('NHC-Description:', '').trim();
   meta.intro = tags.find(t => t.startsWith('NHC-Intro:'))?.replace('NHC-Intro:', '').trim();
   meta.revision = tags.find(t => t.startsWith('NHC-Revision:'))?.replace('NHC-Revision:', '').trim();
   try {
     const url = new URL(annotation.uri);
-    const parts = url.pathname.split('/').filter(Boolean);
-    const authorPart = parts.find(p => p.startsWith('@'));
-    if (authorPart) {
-      meta.author = authorPart.replace('@', '');
-      meta.permlink = parts[parts.indexOf(authorPart) + 1];
+    // Flexible path segment matcher for Hive-based URLs (@author/permlink)
+    const segments = url.pathname.split('/').filter(Boolean);
+    const authorSegment = segments.find(s => s.startsWith('@'));
+    if (authorSegment) {
+      meta.author = authorSegment.replace('@', '').toLowerCase();
+      const authorIndex = segments.indexOf(authorSegment);
+      meta.permlink = segments[authorIndex + 1]?.toLowerCase();
     }
   } catch (e) {
+    console.error(`Failed to parse NHC URL segments: ${annotation.uri}`);
     return null;
   }
   if (!meta.author || !meta.permlink) return null;
@@ -37,11 +40,14 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       let url = `https://hypothes.is/api/search?limit=${limit}&tag=NHC&user=acct:KeithTaylor@hypothes.is`;
       if (cursor) url += `&search_after=${encodeURIComponent(cursor)}`;
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/json', 'User-Agent': 'NHC-Explorer/1.0' }
+        headers: { 
+          'Accept': 'application/json', 
+          'User-Agent': 'NHC-Explorer-Proxy/1.1' 
+        }
       });
-      if (!response.ok) return bad(c, `Hypothesis API error: ${response.statusText}`);
+      if (!response.ok) return bad(c, `Hypothesis Node Error: ${response.statusText}`);
       const data = await response.json() as HypothesisSearchResponse;
-      const records: NHCRecord[] = data.rows
+      const records: NHCRecord[] = (data.rows || [])
         .map(row => {
           const metadata = parseNHCTags(row);
           if (!metadata) return null;
@@ -63,7 +69,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         total: data.total
       });
     } catch (error) {
-      return bad(c, 'Failed to fetch NHC records');
+      console.error('NHC Records Fetch Error:', error);
+      return bad(c, 'Failed to establish connection to annotation layer');
     }
   });
   app.get('/api/hive-post', async (c) => {
@@ -86,6 +93,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         })
       });
       const result = await response.json() as HivePostRpc;
+      // Basic Hive RPC response validation
       if (result.result && result.result.author !== "") {
         const post = result.result;
         try {
@@ -93,13 +101,14 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
             post.metadata = JSON.parse(post.json_metadata);
           }
         } catch (e) {
-          console.error('Failed to parse Hive metadata');
+          console.warn(`Malformed metadata in post @${author}/${permlink}`);
         }
         return ok(c, post);
       }
-      return notFound(c, 'Hive post not found');
+      return notFound(c, 'Niche source content not found on-chain');
     } catch (error) {
-      return bad(c, 'Failed to fetch Hive post');
+      console.error('Hive API Proxy Failure:', error);
+      return bad(c, 'Failed to synchronize with Hive blockchain node');
     }
   });
 }

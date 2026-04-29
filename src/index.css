@@ -54,24 +54,28 @@
   .bg-gradient-hive {
     background: linear-gradient(135deg, #F59E0B 0%, #EA580C 100%);
   }
-  /* Custom Prose System */
+  /* Custom Prose System - Hardened for Hive Content */
   .prose {
     @apply text-foreground/90 leading-relaxed max-w-none;
   }
-  .prose h1 { @apply text-4xl font-black mt-12 mb-6 tracking-tight text-foreground; }
-  .prose h2 { @apply text-3xl font-black mt-10 mb-5 tracking-tight text-foreground; }
-  .prose h3 { @apply text-2xl font-bold mt-8 mb-4 text-foreground; }
+  .prose h1 { @apply text-4xl font-black mt-12 mb-6 tracking-tight text-foreground text-pretty; }
+  .prose h2 { @apply text-3xl font-black mt-10 mb-5 tracking-tight text-foreground text-pretty; }
+  .prose h3 { @apply text-2xl font-bold mt-8 mb-4 text-foreground text-pretty; }
   .prose h4 { @apply text-xl font-bold mt-6 mb-3 text-foreground; }
-  .prose p { @apply my-5 leading-relaxed; }
+  .prose p { @apply my-5 leading-relaxed whitespace-pre-wrap; }
   .prose blockquote { @apply border-l-4 border-amber-500 bg-amber-500/5 px-6 py-4 italic rounded-r-lg my-8 text-foreground/80; }
   .prose ul { @apply list-disc list-outside pl-6 my-6 space-y-2; }
   .prose ol { @apply list-decimal list-outside pl-6 my-6 space-y-2; }
   .prose li { @apply pl-2; }
-  .prose a { @apply text-amber-500 underline decoration-amber-500/30 hover:decoration-amber-500 transition-all font-medium; }
-  .prose img { @apply rounded-2xl shadow-lg my-10 max-w-full h-auto border border-border/50; }
+  .prose a { @apply text-amber-500 underline decoration-amber-500/30 hover:decoration-amber-500 transition-all duration-200 font-medium; }
+  .prose img { @apply rounded-2xl shadow-lg my-10 max-w-full h-auto border border-border/50 hover:opacity-95 transition-opacity duration-300; }
   .prose hr { @apply my-12 border-border/50; }
   .prose code { @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-amber-600 dark:text-amber-400; }
   .prose pre { @apply bg-secondary/80 p-6 rounded-2xl overflow-x-auto my-8 border border-border/50 font-mono text-sm; }
+  /* Specific Hive Content Body tweaks */
+  .hive-content-body {
+    @apply whitespace-pre-wrap text-pretty;
+  }
   /* Dark Mode Adjustments */
   .dark .prose { @apply text-foreground/80; }
   .dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4 { @apply text-foreground; }
