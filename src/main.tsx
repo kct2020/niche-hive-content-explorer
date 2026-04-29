@@ -14,6 +14,8 @@ import '@/index.css'
 import { HomePage } from '@/pages/HomePage'
 import { PostPage } from '@/pages/PostPage'
 const queryClient = new QueryClient();
+// The route path is adjusted to catch the author parameter more flexibly.
+// Note: We use /:author/:permlink so that the @ symbol is captured as part of the :author parameter.
 const router = createBrowserRouter([
   {
     path: "/",
@@ -21,7 +23,7 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
   },
   {
-    path: "/@:author/:permlink",
+    path: "/:author/:permlink",
     element: <PostPage />,
     errorElement: <RouteErrorBoundary />,
   }

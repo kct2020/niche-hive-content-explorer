@@ -20,6 +20,9 @@ export const AnnotationCard = forwardRef<HTMLDivElement, AnnotationCardProps>(
       (s) => s.type === 'TextQuoteSelector'
     )?.exact;
     const description = metadata.description || highlight || original.text || "No summary available.";
+    // Ensure the link is consistent with the routing strategy
+    // We lowercase the author for consistent URL matching
+    const postUrl = `/@${metadata.author.toLowerCase()}/${metadata.permlink.toLowerCase()}`;
     return (
       <motion.div
         ref={ref}
@@ -42,7 +45,7 @@ export const AnnotationCard = forwardRef<HTMLDivElement, AnnotationCardProps>(
                 {format(date, 'MMM d, yyyy')}
               </div>
             </div>
-            <Link to={`/@${metadata.author}/${metadata.permlink}`} className="group/title">
+            <Link to={postUrl} className="group/title">
               <h3 className="text-lg font-bold text-foreground leading-tight group-hover/title:text-amber-500 transition-colors line-clamp-2">
                 {metadata.title || original.document?.title?.[0] || 'Untitled Hive Post'}
               </h3>
@@ -61,7 +64,7 @@ export const AnnotationCard = forwardRef<HTMLDivElement, AnnotationCardProps>(
               asChild
               className="flex-grow bg-gradient-hive hover:opacity-90 text-white font-bold border-none transition-all"
             >
-              <Link to={`/@${metadata.author}/${metadata.permlink}`}>
+              <Link to={postUrl}>
                 Dive Into Niche <ArrowUpRight className="ml-2 w-4 h-4 transition-transform group-hover/card:translate-x-0.5 group-hover/card:-translate-y-0.5" />
               </Link>
             </Button>

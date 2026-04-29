@@ -16,6 +16,12 @@ export function PostPage() {
   const { author, permlink } = useParams<{ author: string; permlink: string }>();
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+  // Clean the author handle: remove @ and ensure lowercase for reliable lookup
+  const cleanAuthor = useMemo(() => {
+    if (!author) return "";
+    return author.startsWith('@') ? author.slice(1).toLowerCase() : author.toLowerCase();
+  }, [author]);
+  const cleanPermlink = useMemo(() => permlink?.toLowerCase() || "", [permlink]);
   const { data: records } = useQuery<{ items: NHCRecord[] }>({
     queryKey: ['nhc-records-full'],
     queryFn: () => api<{ items: NHCRecord[] }>('/api/nhc-records?limit=200'),
@@ -23,15 +29,15 @@ export function PostPage() {
   });
   const record = useMemo(() => {
     const allRecords = [...(records?.items ?? []), ...MOCK_NHC_RECORDS];
-    return allRecords.find(r => 
-      r.metadata.author.toLowerCase() === author?.toLowerCase() && 
-      r.metadata.permlink.toLowerCase() === permlink?.toLowerCase()
+    return allRecords.find(r =>
+      r.metadata.author.toLowerCase() === cleanAuthor &&
+      r.metadata.permlink.toLowerCase() === cleanPermlink
     );
-  }, [records, author, permlink]);
+  }, [records, cleanAuthor, cleanPermlink]);
   const { data: post, isLoading: isPostLoading } = useQuery<HivePost>({
-    queryKey: ['hive-post', author, permlink],
-    queryFn: () => api<HivePost>(`/api/hive-post?author=${author}&permlink=${permlink}`),
-    enabled: !!author && !!permlink,
+    queryKey: ['hive-post', cleanAuthor, cleanPermlink],
+    queryFn: () => api<HivePost>(`/api/hive-post?author=${cleanAuthor}&permlink=${cleanPermlink}`),
+    enabled: !!cleanAuthor && !!cleanPermlink,
     retry: 1,
   });
   const readingTime = useMemo(() => {
@@ -90,15 +96,15 @@ export function PostPage() {
   }
   return (
     <div className="min-h-screen bg-background relative selection:bg-amber-500/30 overflow-x-hidden pb-20">
-      <motion.div 
-        className="fixed top-0 left-0 right-0 h-1.5 bg-amber-500 origin-left z-50 rounded-r-full" 
-        style={{ scaleX }} 
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1.5 bg-amber-500 origin-left z-50 rounded-r-full"
+        style={{ scaleX }}
       />
       <ThemeToggle />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
-        <motion.div 
-          initial={{ opacity: 0, x: -10 }} 
-          animate={{ opacity: 1, x: 0 }} 
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
           className="mb-10"
         >
           <Button asChild variant="ghost" className="pl-0 hover:bg-transparent text-muted-foreground hover:text-amber-500 transition-colors group">
@@ -109,7 +115,7 @@ export function PostPage() {
           </Button>
         </motion.div>
         {isDemo && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-12 p-5 bg-blue-500/5 border border-blue-500/20 rounded-2xl flex items-center gap-4 text-blue-600 dark:text-blue-400"
@@ -126,15 +132,15 @@ export function PostPage() {
               </Badge>
               <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80">
                 <span className="flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-amber-500/60" /> 
+                  <Calendar className="w-3.5 h-3.5 text-amber-500/60" />
                   {format(new Date(displayPost.updated || displayPost.created), 'MMM d, yyyy')}
                 </span>
                 <span className="flex items-center gap-2">
-                  <User className="w-3.5 h-3.5 text-amber-500/60" /> 
+                  <User className="w-3.5 h-3.5 text-amber-500/60" />
                   @{displayPost.author}
                 </span>
                 <span className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-amber-500/60" /> 
+                  <Clock className="w-3.5 h-3.5 text-amber-500/60" />
                   {readingTime} min read
                 </span>
               </div>
@@ -143,9 +149,9 @@ export function PostPage() {
               {record?.metadata.title || displayPost.title}
             </h1>
             {coverImage && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.98, y: 20 }} 
-                animate={{ opacity: 1, scale: 1, y: 0 }} 
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
                 className="overflow-hidden rounded-3xl shadow-2xl border border-white/10"
               >
                 <AspectRatio ratio={16 / 9}>
@@ -155,10 +161,10 @@ export function PostPage() {
             )}
           </header>
           <Separator className="bg-border/30" />
-          <div className="prose prose-amber dark:prose-invert">
-            <div 
-              className="hive-content-body selection:bg-amber-500/40" 
-              dangerouslySetInnerHTML={{ __html: displayPost.body }} 
+          <div className="prose prose-amber">
+            <div
+              className="hive-content-body selection:bg-amber-500/40"
+              dangerouslySetInnerHTML={{ __html: displayPost.body }}
             />
           </div>
           <footer className="mt-24 pt-16 border-t border-border space-y-16">
@@ -185,8 +191,8 @@ export function PostPage() {
               </section>
             </div>
             <div className="text-center pt-8">
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 className="inline-flex items-center gap-3 text-amber-500 hover:text-amber-600 font-black uppercase tracking-[0.3em] text-[10px] transition-all group"
               >
                 Close Connection & Return <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-3" />

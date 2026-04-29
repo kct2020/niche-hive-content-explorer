@@ -54,7 +54,7 @@
   .bg-gradient-hive {
     background: linear-gradient(135deg, #F59E0B 0%, #EA580C 100%);
   }
-  /* Custom Prose Replacement System */
+  /* Custom Prose System */
   .prose {
     @apply text-foreground/90 leading-relaxed max-w-none;
   }
@@ -68,10 +68,14 @@
   .prose ol { @apply list-decimal list-outside pl-6 my-6 space-y-2; }
   .prose li { @apply pl-2; }
   .prose a { @apply text-amber-500 underline decoration-amber-500/30 hover:decoration-amber-500 transition-all font-medium; }
-  .prose img { @apply rounded-2xl shadow-lg my-10 max-w-full h-auto; }
+  .prose img { @apply rounded-2xl shadow-lg my-10 max-w-full h-auto border border-border/50; }
   .prose hr { @apply my-12 border-border/50; }
   .prose code { @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-amber-600 dark:text-amber-400; }
   .prose pre { @apply bg-secondary/80 p-6 rounded-2xl overflow-x-auto my-8 border border-border/50 font-mono text-sm; }
+  /* Dark Mode Adjustments */
+  .dark .prose { @apply text-foreground/80; }
+  .dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4 { @apply text-foreground; }
+  .dark .prose blockquote { @apply bg-amber-500/10 text-foreground/90; }
 }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
