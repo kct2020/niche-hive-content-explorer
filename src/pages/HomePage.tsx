@@ -1,138 +1,134 @@
-// Home page of the app.
-// Currently a demo placeholder "please wait" screen.
-// Replace this file with your actual app UI. Do not delete it to use some other file as homepage. Simply replace the entire contents of this file.
-
-import { useEffect, useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
-
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { HAS_TEMPLATE_DEMO, TemplateDemo } from '@/components/TemplateDemo'
-import { Button } from '@/components/ui/button'
-import { Toaster, toast } from '@/components/ui/sonner'
-
-function formatDuration(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { Sparkles, Hexagon, Loader2, RefreshCw, Bee } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { AnnotationCard } from '@/components/AnnotationCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api-client';
+import type { HypothesisAnnotation } from '@shared/types';
 export function HomePage() {
-  const [coins, setCoins] = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const [startedAt, setStartedAt] = useState<number | null>(null)
-  const [elapsedMs, setElapsedMs] = useState(0)
-
-  useEffect(() => {
-    if (!isRunning || startedAt === null) return
-
-    const t = setInterval(() => {
-      setElapsedMs(Date.now() - startedAt)
-    }, 250)
-
-    return () => clearInterval(t)
-  }, [isRunning, startedAt])
-
-  const formatted = useMemo(() => formatDuration(elapsedMs), [elapsedMs])
-
-  const onPleaseWait = () => {
-    setCoins((c) => c + 1)
-
-    if (!isRunning) {
-      // Resume from the current elapsed time
-      setStartedAt(Date.now() - elapsedMs)
-      setIsRunning(true)
-      toast.success('Building your app…', {
-        description: "Hang tight — we're setting everything up.",
-      })
-      return
+  const { data, isLoading, error, refetch, isRefetching } = useQuery<HypothesisAnnotation[]>({
+    queryKey: ['nhc-content'],
+    queryFn: () => api<HypothesisAnnotation[]>('/api/nhc-content'),
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
     }
-
-    setIsRunning(false)
-    toast.info('Still working…', {
-      description: 'You can come back in a moment.',
-    })
-  }
-
-  const onReset = () => {
-    setCoins(0)
-    setIsRunning(false)
-    setStartedAt(null)
-    setElapsedMs(0)
-    toast('Reset complete')
-  }
-
-  const onAddCoin = () => {
-    setCoins((c) => c + 1)
-    toast('Coin added')
-  }
-
+  };
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 overflow-hidden relative">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Visual Background Elements */}
+      <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-96 h-96 bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-96 h-96 bg-orange-500/10 blur-[120px] rounded-full pointer-events-none" />
       <ThemeToggle />
-      <div className="absolute inset-0 bg-gradient-rainbow opacity-10 dark:opacity-20 pointer-events-none" />
-
-      <div className="text-center space-y-8 relative z-10 animate-fade-in w-full">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-primary floating">
-            <Sparkles className="w-8 h-8 text-white rotating" />
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-balance leading-tight">
-            Creating your <span className="text-gradient">app</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto text-pretty">
-            Your application would be ready soon.
-          </p>
-        </div>
-
-        {HAS_TEMPLATE_DEMO ? (
-          <div className="max-w-5xl mx-auto text-left">
-            <TemplateDemo />
-          </div>
-        ) : (
-          <>
-            <div className="flex justify-center gap-4">
-              <Button
-                size="lg"
-                onClick={onPleaseWait}
-                className="btn-gradient px-8 py-4 text-lg font-semibold hover:-translate-y-0.5 transition-all duration-200"
-                aria-live="polite"
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="py-12 md:py-20 lg:py-24">
+          {/* Hero Section */}
+          <header className="relative z-10 mb-16 text-center space-y-6">
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-gradient-hive shadow-lg shadow-amber-500/20"
+            >
+              <Hexagon className="w-8 h-8 text-white fill-current" />
+            </motion.div>
+            <div className="space-y-4">
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-5xl md:text-7xl font-display font-black tracking-tight"
               >
-                Please Wait
-              </Button>
+                Niche <span className="text-gradient">Hive</span> Content
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground text-pretty"
+              >
+                Curated insights and web annotations from Keith Taylor's digital garden. 
+                A living stream of knowledge from the Niche Hive.
+              </motion.p>
             </div>
-
-            <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-              <div>
-                Time elapsed:{' '}
-                <span className="font-medium tabular-nums text-foreground">{formatted}</span>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex justify-center items-center gap-4 pt-4"
+            >
+              <Button 
+                onClick={() => refetch()} 
+                disabled={isLoading || isRefetching}
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-amber-500"
+              >
+                {isRefetching ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-2" />}
+                Refresh Content
+              </Button>
+            </motion.div>
+          </header>
+          {/* Main Grid */}
+          <main className="relative z-10">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="space-y-4 p-6 rounded-xl border border-white/10">
+                    <div className="flex justify-between">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <Skeleton className="h-6 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                ))}
               </div>
-              <div>
-                Coins:{' '}
-                <span className="font-medium tabular-nums text-foreground">{coins}</span>
+            ) : error ? (
+              <div className="text-center py-20 px-6 rounded-2xl border-2 border-dashed border-destructive/20 bg-destructive/5">
+                <div className="max-w-md mx-auto space-y-4">
+                  <h3 className="text-xl font-bold text-destructive">Failed to load content</h3>
+                  <p className="text-muted-foreground">We encountered an issue connecting to the Hypothes.is hive. Please try again later.</p>
+                  <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+                </div>
               </div>
+            ) : (
+              <motion.div 
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
+              >
+                {data?.map((item, index) => (
+                  <AnnotationCard key={item.id} annotation={item} index={index} />
+                ))}
+                {data?.length === 0 && (
+                  <div className="col-span-full text-center py-24 opacity-50">
+                    <p className="text-lg">The hive is empty... check back later.</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </main>
+          <footer className="mt-24 pt-8 border-t border-white/10 text-center text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-amber-500" /> Curated by Keith Taylor</span>
+              <span className="w-1 h-1 rounded-full bg-border" />
+              <span>Powered by Hypothes.is</span>
             </div>
-
-            <div className="flex justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={onReset}>
-                Reset
-              </Button>
-              <Button variant="outline" size="sm" onClick={onAddCoin}>
-                Add Coin
-              </Button>
-            </div>
-          </>
-        )}
+            <p>&copy; {new Date().getFullYear()} Niche Hive Explorer</p>
+          </footer>
+        </div>
       </div>
-
-      <footer className="absolute bottom-8 text-center text-muted-foreground/80">
-        <p>Powered by Cloudflare</p>
-      </footer>
-
-      <Toaster richColors closeButton />
     </div>
-  )
+  );
 }
