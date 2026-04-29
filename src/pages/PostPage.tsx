@@ -46,7 +46,7 @@ export function PostPage() {
     // Strip markdown characters for better word count accuracy
     const rawBody = post?.body || record?.metadata.description || "";
     if (!rawBody) return 1;
-    const cleanText = rawBody.replace(/[#*`_\[\]()]/g, '');
+    const cleanText = rawBody.replace(/[#*`_()[\]]/g, '');
     const words = cleanText.trim().split(/\s+/).length;
     return Math.max(1, Math.ceil(words / 225));
   }, [post?.body, record]);

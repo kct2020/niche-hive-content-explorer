@@ -1,6 +1,6 @@
 import { IndexedEntity } from "./core-utils";
-import type { User } from "@shared/types";
-import { MOCK_USERS } from "@shared/mock-data";
+import type { User } from "../shared/types";
+import { MOCK_USERS } from "../shared/mock-data";
 /**
  * Minimal User Entity to satisfy template architecture and core-utils requirements.
  * NHC data is currently fetched from Hypothesis API but could be indexed here in the future.

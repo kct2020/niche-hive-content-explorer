@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
 import { ok, bad, notFound } from './core-utils';
-import type { HypothesisSearchResponse, NHCRecord, NHCMetadata, HypothesisAnnotation, HivePostRpc } from "@shared/types";
+import type { HypothesisSearchResponse, NHCRecord, NHCMetadata, HypothesisAnnotation, HivePostRpc } from "../shared/types";
 let globalLastHiveFetch = 0;
 const HIVE_THROTTLE_MS = 800; // Slightly optimized throttle
 function parseNHCTags(annotation: HypothesisAnnotation): NHCMetadata | null {
