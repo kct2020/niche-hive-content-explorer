@@ -11,20 +11,17 @@
 			"path": "./tsconfig.worker.json"
 		}
 	],
-	"compilerOptions": {
-		"incremental": true,
-		"types": [
-			"@cloudflare/workers-types"
-		],
-		"baseUrl": ".",
-		"paths": {
-			"@/*": [
-				"./src/*"
-			],
-            "@shared/*": [
-                "./shared/*"
-            ]
-		},
-        "skipLibCheck": true
-	}
+		"compilerOptions": {
+			"incremental": true,
+			"baseUrl": ".",
+			"paths": {
+				"@/*": [
+					"./src/*"
+				],
+	            "@shared/*": [
+	                "./shared/*"
+	            ]
+			},
+	        "skipLibCheck": true
+		}
 }
