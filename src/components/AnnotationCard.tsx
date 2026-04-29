@@ -1,73 +1,75 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, Quote, Calendar, Bookmark } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ExternalLink, Quote, Calendar, Bookmark, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { HypothesisAnnotation } from '@shared/types';
-import { cn } from '@/lib/utils';
+import { NHCRecord } from '@shared/types';
 interface AnnotationCardProps {
-  annotation: HypothesisAnnotation;
+  record: NHCRecord;
   index: number;
 }
-export function AnnotationCard({ annotation, index }: AnnotationCardProps) {
-  const date = new Date(annotation.created);
-  const domain = new URL(annotation.uri).hostname.replace('www.', '');
-  // Find the exact highlighted text if it exists
-  const highlight = annotation.target[0]?.selector?.find(s => s.type === 'TextQuoteSelector')?.exact;
+export function AnnotationCard({ record, index }: AnnotationCardProps) {
+  const { metadata, updated, original } = record;
+  const date = new Date(metadata.revision || updated);
+  // Find original highlight as fallback text
+  const highlight = original.target[0]?.selector?.find(s => s.type === 'TextQuoteSelector')?.exact;
+  const description = metadata.description || highlight || original.text || "No summary available.";
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
       whileHover={{ y: -5 }}
       className="h-full"
     >
-      <Card className="h-full flex flex-col overflow-hidden border-white/10 dark:border-white/5 bg-card/50 backdrop-blur-sm hover:shadow-xl hover:border-amber-500/30 transition-all duration-300">
-        <CardHeader className="p-5 pb-2">
+      <Card className="h-full flex flex-col overflow-hidden border-white/10 dark:border-white/5 bg-card/40 backdrop-blur-md hover:border-amber-500/40 hover:shadow-2xl transition-all duration-300">
+        <CardHeader className="p-6 pb-2">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Badge variant="secondary" className="bg-amber-500 text-white dark:bg-amber-500/20 dark:text-amber-400 border-none px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest">
+              {metadata.niche}
+            </Badge>
+            <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-muted-foreground/60">
               <Calendar className="w-3 h-3" />
               {format(date, 'MMM d, yyyy')}
             </div>
-            <Badge variant="secondary" className="text-[10px] uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border-none">
-              {domain}
-            </Badge>
           </div>
-          <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug">
-            {annotation.document?.title?.[0] || annotation.title || 'Untitled Source'}
-          </h3>
+          <Link to={`/@${metadata.author}/${metadata.permlink}`} className="group">
+            <h3 className="text-lg font-bold text-foreground leading-tight group-hover:text-amber-500 transition-colors line-clamp-2">
+              {metadata.title || original.document?.title?.[0] || 'Untitled Hive Post'}
+            </h3>
+          </Link>
         </CardHeader>
-        <CardContent className="p-5 pt-2 flex-grow space-y-4">
-          {highlight && (
-            <div className="relative pl-4 border-l-2 border-amber-500/50 italic text-muted-foreground text-sm leading-relaxed">
-              <Quote className="absolute -left-1 -top-2 w-3 h-3 text-amber-500/30 rotate-180" />
-              <p className="line-clamp-4">{highlight}</p>
-            </div>
-          )}
-          {annotation.text && (
-            <div className="text-sm text-foreground/90 font-medium leading-relaxed bg-accent/30 p-3 rounded-md border border-accent">
-              <p className={cn(!highlight && "line-clamp-6")}>{annotation.text}</p>
-            </div>
-          )}
-          {!highlight && !annotation.text && (
-            <div className="text-xs italic text-muted-foreground">
-              Annotation content unavailable.
-            </div>
-          )}
+        <CardContent className="p-6 pt-2 flex-grow">
+          <div className="relative pl-4 border-l-2 border-amber-500/30">
+            <Quote className="absolute -left-1 -top-2 w-3 h-3 text-amber-500/20 rotate-180" />
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
+              {description}
+            </p>
+          </div>
         </CardContent>
-        <CardFooter className="p-5 pt-0 mt-auto">
-          <Button 
-            asChild 
-            variant="outline" 
-            size="sm" 
-            className="w-full group border-amber-500/20 hover:bg-amber-500 hover:text-white transition-colors"
+        <CardFooter className="p-6 pt-0 mt-auto flex gap-2">
+          <Button
+            asChild
+            className="flex-grow bg-gradient-hive hover:opacity-90 text-white font-bold border-none"
           >
-            <a href={annotation.uri} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
-              <Bookmark className="w-3.5 h-3.5 group-hover:fill-current" />
-              Read Source
-              <ExternalLink className="w-3 h-3 opacity-50" />
+            <Link to={`/@${metadata.author}/${metadata.permlink}`}>
+              Dive Into Niche <ArrowUpRight className="ml-2 w-4 h-4" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-muted-foreground hover:text-amber-500"
+            title="Read Original Source"
+          >
+            <a href={record.uri} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-4 h-4" />
             </a>
           </Button>
         </CardFooter>

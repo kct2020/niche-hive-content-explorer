@@ -3,20 +3,27 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
 }
+export interface NHCMetadata {
+  niche: string;
+  title?: string;
+  description?: string;
+  intro?: string;
+  revision?: string;
+  author: string;
+  permlink: string;
+}
+export interface NHCRecord {
+  id: string;
+  uri: string;
+  created: string;
+  updated: string;
+  tags: string[];
+  metadata: NHCMetadata;
+  original: HypothesisAnnotation;
+}
 export interface User {
   id: string;
   name: string;
-}
-export interface Chat {
-  id: string;
-  title: string;
-}
-export interface ChatMessage {
-  id: string;
-  chatId: string;
-  userId: string;
-  text: string;
-  ts: number;
 }
 export interface HypothesisSelector {
   type: string;
@@ -47,4 +54,12 @@ export interface HypothesisAnnotation {
 export interface HypothesisSearchResponse {
   total: number;
   rows: HypothesisAnnotation[];
+}
+export interface HivePost {
+  author: string;
+  permlink: string;
+  title: string;
+  body: string;
+  created: string;
+  updated: string;
 }
