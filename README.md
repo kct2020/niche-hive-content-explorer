@@ -1,6 +1,6 @@
 # Cloudflare Workers Full-Stack Boilerplate
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kct2020/niche-hive-content-explorer)
 
 A production-ready, full-stack application template powered by Cloudflare Workers. Features a modern React frontend with shadcn/ui, Tailwind CSS, and a robust backend using Durable Objects for stateful, multi-tenant storage. Includes real-time chat functionality with users and chat boards as a demo, ready for your custom app.
 
@@ -104,7 +104,7 @@ The app deploys as a single Worker with:
 - Durable Objects for storage (auto-migrates).
 - Custom domain support via `wrangler.toml`.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kct2020/niche-hive-content-explorer)
 
 ## Customization
 
